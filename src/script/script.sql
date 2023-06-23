@@ -1,5 +1,6 @@
 CREATE DATABASE harbor_flow WITH OWNER walker;
 
+CREATE SEQUENCE user_account_sequence;
 CREATE SEQUENCE boat_category_sequence; 
 CREATE SEQUENCE boat_detail_sequence; 
 CREATE SEQUENCE boat_flag_sequence; 
@@ -14,6 +15,21 @@ CREATE SEQUENCE source_sequence;
 CREATE SEQUENCE stopover_forecast_sequence; 
 CREATE SEQUENCE pending_forecast_sequence; 
 CREATE SEQUENCE stopover_sequence;
+CREATE SEQUENCE stopover_services_sequence;
+CREATE SEQUENCE stopover_services_details_sequence;
+CREATE SEQUENCE validated_stopover_service_sequence;
+CREATE SEQUENCE stopover_invoice_sequence;
+CREATE SEQUENCE stopover_invoice_details_sequence;
+CREATE SEQUENCE validated_stopover_invoice_sequence;
+
+CREATE TABLE user_account (
+    id VARCHAR(7) PRIMARY KEY,
+    name VARCHAR(20) NOT NULL,
+    first_name VARCHAR(20) NOT NULL,
+    email VARCHAR(50) NOT NULL UNIQUE,
+    password VARCHAR(50) NOT NULL,
+    profile VARCHAR(10) NOT NULL
+);
 
 CREATE TABLE boat_category (
     id VARCHAR(7) PRIMARY KEY,
@@ -106,5 +122,51 @@ CREATE TABLE pending_forecast (
 );
 CREATE TABLE stopover (
     id VARCHAR(9) PRIMARY KEY,
-    stopover_forecast_id VARCHAR(9) REFERENCES stopover_forecast(id)
+    start_date TIMESTAMP NOT NULL,
+    boat_id VARCHAR(7) REFERENCES boat(id),
+    end_date TIMESTAMP,
+    CHECK(start_date < end_date)
+);
+CREATE TABLE stopover_services (
+    id VARCHAR(9) PRIMARY KEY,
+    stopover_id VARCHAR(9) REFERENCES stopover(id),
+    dock_id VARCHAR(8) REFERENCES dock(id),
+    arrival_date TIMESTAMP NOT NULL,
+    departure_date TIMESTAMP NOT NULL
+);
+CREATE TABLE stopover_services_details (
+    id VARCHAR(9) PRIMARY KEY,
+    stopover_services_id VARCHAR(9) REFERENCES stopover_services(id),
+    dock_service_id VARCHAR(8) REFERENCES dock_service_price(id),
+    user_account_id VARCHAR(7) REFERENCES user_account(id),
+    action_date TIMESTAMP NOT NULL,
+    start_date TIMESTAMP NOT NULL,
+    end_date TIMESTAMP NOT NULL,
+    state INT NOT NULL, -- 1: pending, 11: validated, 21: paid
+    CHECK(start_date < end_date)
+);
+CREATE TABLE validated_stopover_service (
+    id VARCHAR(9) PRIMARY KEY,
+    stopover_services_details_id VARCHAR(9) REFERENCES stopover_services_details(id),
+    user_account_id VARCHAR(7) REFERENCES user_account(id),
+    action_date TIMESTAMP NOT NULL
+);
+CREATE TABLE stopover_invoice (
+    id VARCHAR(9) PRIMARY KEY,
+    stopover_id VARCHAR(9) REFERENCES stopover_services(id),
+    user_account_id VARCHAR(7) REFERENCES user_account(id),
+    action_date TIMESTAMP NOT NULL,
+    state INT NOT NULL, -- 1: pending, 11: validated, 21: paid
+    UNIQUE(stopover_id, action_date)
+);
+CREATE TABLE stopover_invoice_details (
+    id VARCHAR(9) PRIMARY KEY,
+    stopover_invoice_id VARCHAR(9) REFERENCES stopover_invoice(id),
+    validated_stopover_service_id VARCHAR(9) REFERENCES validated_stopover_service(id)
+);
+CREATE TABLE validated_stopover_invoice (
+    id VARCHAR(9) PRIMARY KEY,
+    stopover_invoice_id VARCHAR(9) REFERENCES stopover_invoice(id),
+    user_account_id VARCHAR(7) REFERENCES user_account(id),
+    action_date TIMESTAMP NOT NULL
 );

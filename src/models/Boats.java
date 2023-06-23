@@ -16,8 +16,14 @@ public class Boats extends Relation<Boats> {
     @Column
     private String name;
 
+    @Column(name = "boat_category_id")
+    private String boatCategoryID;
+
     @Column
-    private String type;
+    private String category;
+
+    @Column(name = "boat_detail_id")
+    private String boatDetailID;
 
     @Column
     private Double length;
@@ -33,6 +39,9 @@ public class Boats extends Relation<Boats> {
 
     @Column
     private Double towing;
+
+    @Column(name = "boat_flag_id")
+    private String boatFlagID;
 
     @Column
     private String origin;
@@ -51,8 +60,16 @@ public class Boats extends Relation<Boats> {
         this.name = name;
     }
 
-    public void setType(String type) {
-        this.type = type;
+    public void setBoatCategoryID(String boatCategoryID) {
+        this.boatCategoryID = boatCategoryID;
+    }
+
+    public void setCategory(String type) {
+        this.category = type;
+    }
+
+    public void setBoatDetailID(String boatDetailID) {
+        this.boatDetailID = boatDetailID;
     }
 
     public void setLength(Double length) {
@@ -75,6 +92,10 @@ public class Boats extends Relation<Boats> {
         this.towing = towing;
     }
 
+    public void setBoatFlagID(String boatFlagID) {
+        this.boatFlagID = boatFlagID;
+    }
+
     public void setOrigin(String origin) {
         this.origin = origin;
     }
@@ -88,8 +109,16 @@ public class Boats extends Relation<Boats> {
         return this.name;
     }
 
-    public String getType() {
-        return this.type;
+    public String getBoatCategoryID() {
+        return this.boatCategoryID;
+    }
+
+    public String getCategory() {
+        return this.category;
+    }
+
+    public String getBoatDetailID() {
+        return this.boatDetailID;
     }
 
     public Double getLength() {
@@ -110,6 +139,10 @@ public class Boats extends Relation<Boats> {
 
     public Double getTowing() {
         return this.towing;
+    }
+
+    public String getBoatFlagID() {
+        return this.boatFlagID;
     }
 
     public String getOrigin() {

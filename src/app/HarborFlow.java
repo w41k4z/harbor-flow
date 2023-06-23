@@ -22,26 +22,24 @@ public class HarborFlow {
         for (int i = 0; i < allDocks.length; i++) {
             dockQueuings[i] = new DockQueuing(allDocks[i]);
         }
+
         int in = 0;
         while (in != allPendingForecasts.length) {
-            ArrayList<DockQueuing> available = new ArrayList<DockQueuing>();
+            ArrayList<DockQueuing> available = this.getAvailableDocks(dockQueuings);
             if (available != null) {
-                for (int j = 0; j < dockQueuings.length; j++) {
-                    try {
-                        dockQueuings[j].addToQueu(allPendingForecasts[j]);
-                        tempQueuing.add(dockQueuings[j]);
+                DockQueuing[] availableDock = available.toArray(new DockQueuing[available.size()]);
+                DockQueuing suitableDock = null;
+                for (int j = 0; j < allPendingForecasts.length; j++) {
+                    suitableDock = this.getSuitableDock(availableDock, allPendingForecasts[j]);
+                    if (suitableDock != null) {
+                        suitableDock.addToQueu(allPendingForecasts[j]);
                         in++;
-                    } catch (Exception e) {
-                        index = j;
-                        for (int k = 0; k < tempQueuing.size(); k++) {
-                            try {
-                                tempQueuing.get(k).addToQueu(allPendingForecasts[j]);
-                                in++;
-                            } catch (Exception e2) {
-                                continue;
-                            }
-                        }
                     }
+                }
+            } else {
+                // queing
+                for (int j = 0; j < dockQueuings.length; j++) {
+
                 }
             }
         }
@@ -59,15 +57,29 @@ public class HarborFlow {
         return availableDocks.size() > 0 ? availableDocks : null;
     }
 
-    public void getSuitableDock(DockQueuing[] dockQueuings, PendingForecast pendingForecast) throws Exception {
+    public DockQueuing getSuitableDock(DockQueuing[] dockQueuings, PendingForecast pendingForecast) throws Exception {
+        double totalCost = Math.pow(10, 10);
+        int dockIndex = -1;
+        Proforma proforma = new Proforma(pendingForecast.getStopoverForecast().getBoat(),
+                new String[] { "remorquage", "stationnement" }, pendingForecast.getStopoverForecast().getArrivalDate(),
+                pendingForecast.getStopoverForecast().getDepartureDate());
         for (int i = 0; i < dockQueuings.length; i++) {
-            try {
-                dockQueuings[i].addToQueu(pendingForecast);
-                return;
-            } catch (Exception e) {
-                continue;
+            double cost = dockQueuings[i].getDock().estimateTotalCost(proforma);
+            if (cost < totalCost && pendingForecast.getStopoverForecast().getBoat().getDepth() < dockQueuings[i]
+                    .getDock().getDepth()) {
+                totalCost = cost;
+                dockIndex = i;
             }
         }
-        throw new Exception("Not suitable");
+        return dockIndex != -1 ? dockQueuings[dockIndex] : null;
+    }
+
+    // for queuing
+    public void getSuitableDockByTime(DockQueuing[] dockQueuings, PendingForecast pendingForecast) {
+        double waitingTime = Math.pow(10, 10);
+        int dockIndex = -1;
+        Proforma proforma = new Proforma(pendingForecast.getStopoverForecast().getBoat(),
+                new String[] { "remorquage", "stationnement" }, pendingForecast.getStopoverForecast().getArrivalDate(),
+                pendingForecast.getStopoverForecast().getDepartureDate());
     }
 }

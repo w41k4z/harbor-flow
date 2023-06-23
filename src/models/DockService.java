@@ -70,6 +70,34 @@ public class DockService extends Relation<DockService> {
         return this.dockServicePrices;
     }
 
+    /* METHODS SECTION */
+    public DockServicePrice getDockServicePriceByCategory(Boats boat) throws Exception {
+        for (DockServicePrice dockServicePrice : this.dockServicePrices) {
+            if (dockServicePrice.getBoatCategoryID().equals(boat.getBoatCategoryID())) {
+                return dockServicePrice;
+            }
+        }
+        throw new Exception("Dock service unavailable for this category");
+    }
+
+    public Double[] estimateCost(Boats boat, double duration) throws Exception {
+        DockServicePrice dockServicePrice = this.getDockServicePriceByCategory(boat);
+        double nationalCost = 0;
+        double internationalCost = 0;
+        double nationalAmount = 0;
+        double internationalAmount = 0;
+        int slice = (int) Math.ceil(duration / dockServicePrice.getHourlyTier());
+        for (int i = 0; i < slice; i++) {
+            if (dockServicePrice.getDockServicePriceDetails()[i] != null) {
+                nationalAmount = dockServicePrice.getDockServicePriceDetails()[i].getNationalPrice();
+                internationalAmount = dockServicePrice.getDockServicePriceDetails()[i].getInternationalPrice();
+            }
+            nationalCost += nationalAmount;
+            internationalCost += internationalAmount;
+        }
+        return new Double[] { nationalCost, internationalCost };
+    }
+
     /* OVERRIDES SECTION */
     @Override
     public DockService[] findAll(DatabaseConnection connection) throws Exception {

@@ -36,10 +36,9 @@ public class DockQueuing {
     }
 
     /* METHODS SECTION */
-    public void addToQueu(PendingForecast pendingForecast) throws Exception {
-        if (!(this.dock.getDepth() > pendingForecast.getStopoverForecast().getBoat().getDepth())) {
-            throw new Exception("Not suitable");
+    public void addToQueu(PendingForecast pendingForecast) {
+        if (this.dock.getDepth() > pendingForecast.getStopoverForecast().getBoat().getDepth()) {
+            this.queuingBoats.add(pendingForecast);
         }
-        this.queuingBoats.add(pendingForecast);
     }
 }

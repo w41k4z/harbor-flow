@@ -91,7 +91,8 @@ public class DockServicePrice extends Relation<DockServicePrice> {
         DockServicePrice[] dockServicePrices = super.findAll(connection);
         for (DockServicePrice dockServicePrice : dockServicePrices) {
             dockServicePrice.setDockServicePriceDetails(new DockServicePriceDetails().findAll(connection,
-                    "WHERE dock_service_price_id='" + dockServicePrice.getDockServicePriceID() + "'"));
+                    "WHERE dock_service_price_id='" + dockServicePrice.getDockServicePriceID()
+                            + "' ORDER BY i_th_hourly_tier"));
         }
         return dockServicePrices;
     }
@@ -101,7 +102,8 @@ public class DockServicePrice extends Relation<DockServicePrice> {
         DockServicePrice[] dockServicePrices = super.findAll(connection, spec);
         for (DockServicePrice dockServicePrice : dockServicePrices) {
             dockServicePrice.setDockServicePriceDetails(new DockServicePriceDetails().findAll(connection,
-                    "WHERE dock_service_price_id='" + dockServicePrice.getDockServicePriceID() + "'"));
+                    "WHERE dock_service_price_id='" + dockServicePrice.getDockServicePriceID()
+                            + "' ORDER BY i_th_hourly_tier"));
         }
         return dockServicePrices;
     }

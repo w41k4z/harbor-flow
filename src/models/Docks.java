@@ -92,14 +92,23 @@ public class Docks extends Relation<Docks> {
     }
 
     /* METHODS SECTION */
-    public ArrayList<Services> getServicesFrom(Proforma proforma) throws Exception {
-        ArrayList<Services> services = new ArrayList<>();
+    public DockService getServiceByName(String name) {
+        for (DockService dockService : this.dockServices) {
+            if (dockService.getService().getName().toLowerCase().equals(name.toLowerCase())) {
+                return dockService;
+            }
+        }
+        return null;
+    }
+
+    public ArrayList<DockService> getServicesFrom(Proforma proforma) throws Exception {
+        ArrayList<DockService> services = new ArrayList<>();
         for (String prestation : proforma.getPrestations()) {
             boolean notFound = true;
             for (DockService dockService : this.dockServices) {
                 if (dockService.getService().getName().toLowerCase().equals(prestation.toLowerCase())) {
                     notFound = false;
-                    services.add(dockService.getService());
+                    services.add(dockService);
                     break;
                 }
             }
@@ -110,16 +119,44 @@ public class Docks extends Relation<Docks> {
         return services;
     }
 
-    public double estimateTotalCost(Proforma proforma) {
-        ArrayList<Services> services = this.getServicesFrom(proforma);
+    public double estimateTotalCost(Proforma proforma) throws Exception {
+        ArrayList<DockService> services = this.getServicesFrom(proforma);
         double totalCost = 0;
-        for (DockService dockService : this.dockServices) {
-            totalCost += dockService.getCost();
+        for (DockService dockService : services) {
+            double prestationDuration = dockService.getService().getName().equals("remorquage")
+                    ? proforma.getBoat().getTowing()
+                    : (proforma.getForecastingEndDate().getTime() - proforma.getForecastingStartDate().getTime())
+                            / (60 * 1000);
+            Double[] estimation = dockService.estimateCost(proforma.getBoat(), prestationDuration);
+            totalCost += estimation[0];
         }
         return totalCost;
     }
 
     /* OVERRIDES SECTION */
+    @Override
+    public Docks findByPrimaryKey(DatabaseConnection connection) throws Exception {
+        Docks[] docks = new View<Docks>("docks", Docks.class).findAll(connection,
+                "WHERE id = '" + this.getDockID() + "'");
+        if (docks.length == 1) {
+            docks[0].setDockServices(new DockService().findAll(connection,
+                    "WHERE dock_id = '" + docks[0].getDockID()));
+            return docks[0];
+        }
+        return null;
+    }
+
+    @Override
+    public Docks findByPrimaryKey(DatabaseConnection connection, String pk) throws Exception {
+        Docks[] docks = new View<Docks>("docks", Docks.class).findAll(connection, "WHERE id = '" + pk + "'");
+        if (docks.length == 1) {
+            docks[0].setDockServices(new DockService().findAll(connection,
+                    "WHERE dock_id = '" + docks[0].getDockID()));
+            return docks[0];
+        }
+        return null;
+    }
+
     @Override
     public Docks[] findAll(DatabaseConnection connection) throws Exception {
         Docks[] docks = new View<Docks>("docks", Docks.class).findAll(connection);
