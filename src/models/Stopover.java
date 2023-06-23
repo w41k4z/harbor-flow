@@ -23,6 +23,8 @@ public class Stopover extends Relation<Stopover> {
     @Column(name = "end_date")
     private Timestamp endDate;
 
+    private Boats boat;
+
     private StopoverServices[] stopoverServices;
 
     /* CONSTRUCTOR SECTION */
@@ -47,6 +49,10 @@ public class Stopover extends Relation<Stopover> {
         this.endDate = endDate;
     }
 
+    public void setBoat(Boats boat) {
+        this.boat = boat;
+    }
+
     public void setStopoverServices(StopoverServices[] stopoverServices) {
         this.stopoverServices = stopoverServices;
     }
@@ -68,17 +74,30 @@ public class Stopover extends Relation<Stopover> {
         return endDate;
     }
 
+    public Boats getBoat() {
+        return boat;
+    }
+
     public StopoverServices[] getStopoverServices() {
         return stopoverServices;
     }
 
     /* METHODS SECTION */
+    public StopoverServices getCurrentStopoverServices() {
+        for (StopoverServices stopoverService : stopoverServices) {
+            if (stopoverService.getDepartureDate() == null) {
+                return stopoverService;
+            }
+        }
+        throw new RuntimeException("No current dock found");
+    }
 
     /* OVERRIDES SECTION */
     @Override
     public Stopover[] findAll(DatabaseConnection connection) throws Exception {
         Stopover[] stopovers = super.findAll(connection);
         for (Stopover stopover : stopovers) {
+            stopover.setBoat(new Boats().findByPrimaryKey(connection, stopover.getBoatID()));
             stopover.setStopoverServices(new StopoverServices().findAll(connection,
                     "stopover_id = '" + stopover.getStopoverID() + "'"));
         }
@@ -89,6 +108,7 @@ public class Stopover extends Relation<Stopover> {
     public Stopover[] findAll(DatabaseConnection connection, String spec) throws Exception {
         Stopover[] stopovers = super.findAll(connection, spec);
         for (Stopover stopover : stopovers) {
+            stopover.setBoat(new Boats().findByPrimaryKey(connection, stopover.getBoatID()));
             stopover.setStopoverServices(new StopoverServices().findAll(connection,
                     "stopover_id = '" + stopover.getStopoverID() + "'"));
         }

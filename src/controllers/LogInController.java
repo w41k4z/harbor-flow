@@ -26,8 +26,11 @@ public class LogInController {
 
         ModelView view;
         try {
+            // do not forget this
+            Class.forName("org.postgresql.Driver");
+
             UserAccount userAccount = UserAccount.authenticate(email, password);
-            view = new ModelView("home/planning.jsp");
+            view = new ModelView("home/stopover.jsp");
             view.addSession("user", userAccount.getUserAccountID());
             view.addSession("profile", userAccount.getProfile());
         } catch (Exception e) {

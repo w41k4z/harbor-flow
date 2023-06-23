@@ -5,7 +5,7 @@
     String userID = (String) request.getSession().getAttribute("user");
     Boats[] allBoats = (Boats[]) request.getAttribute("allBoats");
     Docks[] allDocks = (Docks[]) request.getAttribute("allDocks");
-    Stopover[] allPendingStopover = (Stopover[]) request.getAttribute("allPendingStopovers");
+    Stopover[] allPendingStopovers = (Stopover[]) request.getAttribute("allPendingStopovers");
 %>
 
 <!DOCTYPE html>
@@ -92,102 +92,31 @@
                             <table class="table table-striped">
                                 <thead>
                                     <tr>
-                                        <th> Date </th>
-                                        <th> Source </th>
+                                        <th> Arrival Date </th>
                                         <th> Boat </th>
-                                        <th> Arrival </th>
-                                        <th> Departure </th>
+                                        <th> Current dock </th>
                                         <th></th>
                                     </tr>
                                 </thead>
                                 <tbody>
+                                    <% for(int i = 0; allPendingStopovers != null && i < allPendingStopovers.length; i++) { %>
                                     <tr>
-                                        <td class="py-1"> 12/12/2023 </td>
-                                        <td> 127.0.0.1 </td>
-                                        <td> Man'oWar </td>
-                                        <td> 13/12/2023 13:20:00 </td>
-                                        <td> 13/12/2023 22:35:00 </td>
-                                        <td>
+                                        <td class="py-1"> <%= allPendingStopovers[i].getStartDate().toString() %> </td>
+                                        <td> <%= allPendingStopovers[i].getBoat().getName() %> </td>
+                                        <td> <%= allPendingStopovers[i].getCurrentStopoverServices().getDock().getName() %> </td>
+                                        <td class="d-flex justify-content-end">
                                             <div class="btn-group">
-                                                <button class="btn btn-warning" data-toggle="modal"
-                                                    data-target="#editModal">Edit</button>
-                                                <div class="modal fade" id="editModal" tabindex="-1" role="dialog"
-                                                    aria-labelledby="mediumModalLabel" aria-hidden="true">
-                                                    <div class="modal-dialog modal-md modal-dialog-centered"
-                                                        role="document">
-                                                        <div class="modal-content">
-                                                            <div class="modal-header d-flex justify-content-between">
-                                                                <h5 class="modal-title" id="mediumModalLabel">Update
-                                                                    employee
-                                                                </h5>
-                                                                <button class="btn" data-dismiss="modal"
-                                                                    aria-label="Close"><i class="mdi mdi-close"></i>
-                                                                </button>
-                                                            </div>
-                                                            <div class="model-body justify-content-around mt-3 p-3">
-                                                                <div>
-                                                                    <div class="card">
-                                                                        <div class="card-body">
-                                                                            <h4 class="card-title m-0 text-white">Change
-                                                                                the
-                                                                                above information</h4>
-                                                                            <hr>
-                                                                        </div>
-                                                                        <div class="card">
-                                                                            <form class="row g-3 px-3" id="employeeForm"
-                                                                                method="POST">
-                                                                                <input type="hidden" name="employeeID"
-                                                                                    value="" />
-                                                                                <div class="col-auto col-lg-12">
-                                                                                    <input type="text"
-                                                                                        class="form-control"
-                                                                                        placeholder="Name" name="name"
-                                                                                        value="Alain">
-                                                                                </div>
-                                                                                <div class="col-auto col-lg-12">
-                                                                                    <input type="text"
-                                                                                        class="form-control"
-                                                                                        placeholder="First Name"
-                                                                                        name="firstName" value="Rico">
-                                                                                </div>
-                                                                                <div class="col-auto col-lg-12">
-                                                                                    <input type="text"
-                                                                                        class="form-control"
-                                                                                        placeholder="Post" name="post"
-                                                                                        value="CEO">
-                                                                                </div>
-                                                                                <div class="col-auto col-lg-12">
-                                                                                    <input type="text"
-                                                                                        class="form-control"
-                                                                                        placeholder="Salary"
-                                                                                        name="salary" value="1200">
-                                                                                </div>
-                                                                                <div
-                                                                                    class="col-auto col-lg-12 mt-3 d-flex justify-content-end">
-                                                                                    <button type="button"
-                                                                                        class="btn btn-secondary"
-                                                                                        data-dismiss="modal">Cancel</button>
-                                                                                    <button type="submit"
-                                                                                        class="btn btn-primary">Confirm</button>
-                                                                                </div>
-                                                                            </form>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <a class="btn btn-primary">Validate</a>
+                                                <button class="btn btn-info" data-toggle="modal"
+                                                    data-target="#editModal">Change dock</button>
+                                                <button class="btn btn-success" data-toggle="modal"
+                                                    data-target="#editModal">New prestation</button>
+                                                <a class="btn btn-primary">Close</a>
                                             </div>
                                         </td>
                                     </tr>
+                                    <% } %>
                                 </tbody>
                             </table>
-                            <div class="d-flex justify-content-end">
-                                <button class="btn btn-info">Plan</button>
-                            </div>
                         </div>
                     </div>
                 </div>
