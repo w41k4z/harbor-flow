@@ -5,7 +5,7 @@ import orm.annotation.PrimaryKey;
 import orm.annotation.Table;
 import orm.database.object.relation.Relation;
 
-@Table(name = "dock", columnCount = 3)
+@Table(name = "dock", columnCount = 4)
 public class Dock extends Relation<Dock> {
     /* FIELDS SECTION */
     @PrimaryKey(column = @Column(name = "id"), prefix = "DOK", length = 7, sequence = "dock_sequence")
@@ -16,6 +16,9 @@ public class Dock extends Relation<Dock> {
 
     @Column(name = "detail")
     private String detailID;
+
+    @Column(name = "currency_id")
+    private String currencyID;
 
     /* CONSTRUCTION SECTION */
     public Dock() throws Exception {
@@ -35,6 +38,10 @@ public class Dock extends Relation<Dock> {
         this.detailID = detailID;
     }
 
+    public void setCurrencyID(String currencyID) {
+        this.currencyID = currencyID;
+    }
+
     /* GETTERS SECTION */
     public String getDockID() {
         return this.dockID;
@@ -46,6 +53,10 @@ public class Dock extends Relation<Dock> {
 
     public String getDetailID() {
         return this.detailID;
+    }
+
+    public String getCurrencyID() {
+        return this.currencyID;
     }
 
 }

@@ -7,7 +7,7 @@ import orm.database.object.relation.Relation;
 import orm.database.object.view.View;
 
 // VIEW
-@Table(columnCount = 9)
+@Table(columnCount = 13)
 public class Boats extends Relation<Boats> {
     /* FIELDS SECTION */
     @Column(name = "id")
@@ -20,7 +20,7 @@ public class Boats extends Relation<Boats> {
     private String boatCategoryID;
 
     @Column
-    private String category;
+    private String type;
 
     @Column(name = "boat_detail_id")
     private String boatDetailID;
@@ -46,6 +46,9 @@ public class Boats extends Relation<Boats> {
     @Column
     private String origin;
 
+    @Column
+    private String currency;
+
     /* CONSTRUCTION SECTION */
     public Boats() throws Exception {
         super();
@@ -64,8 +67,8 @@ public class Boats extends Relation<Boats> {
         this.boatCategoryID = boatCategoryID;
     }
 
-    public void setCategory(String type) {
-        this.category = type;
+    public void setType(String type) {
+        this.type = type;
     }
 
     public void setBoatDetailID(String boatDetailID) {
@@ -100,6 +103,10 @@ public class Boats extends Relation<Boats> {
         this.origin = origin;
     }
 
+    public void setCurrency(String currency) {
+        this.currency = currency;
+    }
+
     /* GETTERS SECTION */
     public String getBoatID() {
         return this.boatID;
@@ -113,8 +120,8 @@ public class Boats extends Relation<Boats> {
         return this.boatCategoryID;
     }
 
-    public String getCategory() {
-        return this.category;
+    public String getType() {
+        return this.type;
     }
 
     public String getBoatDetailID() {
@@ -149,15 +156,23 @@ public class Boats extends Relation<Boats> {
         return this.origin;
     }
 
+    public String getCurrency() {
+        return this.currency;
+    }
+
+    public Currency getCurrency(DatabaseConnection connection) throws Exception {
+        return new Currency().findAll(connection, "WHERE label = '" + this.currency + "'")[0];
+    }
+
     /* OVERRIDES SECTION */
     @Override
     public Boats[] findAll(DatabaseConnection connection) throws Exception {
-        return new View<Boats>("stock_state", Boats.class).findAll(connection);
+        return new View<Boats>("boats", Boats.class).findAll(connection);
     }
 
     @Override
     public Boats[] findAll(DatabaseConnection connection, String spec) throws Exception {
-        return new View<Boats>("stock_state", Boats.class).findAll(connection, spec);
+        return new View<Boats>("boats", Boats.class).findAll(connection, spec);
     }
 
     @Override

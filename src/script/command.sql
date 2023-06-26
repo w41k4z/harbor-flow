@@ -11,7 +11,8 @@ CREATE VIEW boats AS
         boat_detail.weight,
         boat_detail.towing,
         boat_flag.id AS boat_flag_id,
-        boat_flag.origin
+        boat_flag.origin,
+        currency.label AS currency
     FROM boat
     JOIN boat_category
     ON boat.type = boat_category.id
@@ -19,6 +20,9 @@ CREATE VIEW boats AS
     ON boat.detail = boat_detail.id
     JOIN boat_flag
     ON boat.flag = boat_flag.id
+    JOIN currency
+    ON boat.currency_id = currency.id
+;
 
 CREATE VIEW docks AS
     SELECT
@@ -26,7 +30,11 @@ CREATE VIEW docks AS
         dock.name,
         dock_detail.length,
         dock_detail.width,
-        dock_detail.depth
+        dock_detail.depth,
+        currency.label AS currency
     FROM dock
     JOIN dock_detail
     ON dock.detail = dock_detail.id
+    JOIN currency
+    ON dock.currency_id = currency.id
+;

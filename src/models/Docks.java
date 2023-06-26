@@ -28,6 +28,9 @@ public class Docks extends Relation<Docks> {
     @Column
     private Double depth;
 
+    @Column
+    private String currency;
+
     private DockService[] dockServices;
 
     /* CONSTRUCTOR SECTION */
@@ -62,6 +65,10 @@ public class Docks extends Relation<Docks> {
         }
     }
 
+    public void setCurrency(String currency) {
+        this.currency = currency;
+    }
+
     public void setDockServices(DockService[] dockServices) {
         this.dockServices = dockServices;
     }
@@ -85,6 +92,10 @@ public class Docks extends Relation<Docks> {
 
     public Double getDepth() {
         return depth;
+    }
+
+    public String getCurrency() {
+        return currency;
     }
 
     public DockService[] getDockServices() {

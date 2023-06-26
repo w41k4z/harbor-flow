@@ -1,17 +1,17 @@
-CREATE DATABASE harbor_flow WITH OWNER walker;
-
+CREATE SEQUENCE source_sequence; 
 CREATE SEQUENCE user_account_sequence;
+CREATE SEQUENCE currency_sequence;
+CREATE SEQUENCE exchange_rate_sequence;
 CREATE SEQUENCE boat_category_sequence; 
 CREATE SEQUENCE boat_detail_sequence; 
 CREATE SEQUENCE boat_flag_sequence; 
 CREATE SEQUENCE boat_sequence; 
 CREATE SEQUENCE service_sequence; 
-CREATE SEQUENCE service_price_sequence; 
-CREATE SEQUENCE service_price_detail_sequence; 
 CREATE SEQUENCE dock_sequence; 
 CREATE SEQUENCE dock_detail_sequence; 
 CREATE SEQUENCE dock_service_sequence; 
-CREATE SEQUENCE source_sequence; 
+CREATE SEQUENCE dock_service_price_sequence; 
+CREATE SEQUENCE dock_service_price_details_sequence; 
 CREATE SEQUENCE stopover_forecast_sequence; 
 CREATE SEQUENCE pending_forecast_sequence; 
 CREATE SEQUENCE stopover_sequence;
@@ -22,13 +22,31 @@ CREATE SEQUENCE stopover_invoice_sequence;
 CREATE SEQUENCE stopover_invoice_details_sequence;
 CREATE SEQUENCE validated_stopover_invoice_sequence;
 
+CREATE TABLE source (
+    id VARCHAR(7) PRIMARY KEY,
+    ip VARCHAR(15) NOT NULL UNIQUE
+);
+
 CREATE TABLE user_account (
     id VARCHAR(7) PRIMARY KEY,
     name VARCHAR(20) NOT NULL,
-    first_name VARCHAR(20) NOT NULL,
+    first_name VARCHAR(20),
     email VARCHAR(50) NOT NULL UNIQUE,
     password VARCHAR(50) NOT NULL,
-    profile VARCHAR(10) NOT NULL
+    profile VARCHAR(50) NOT NULL,
+    source_id VARCHAR(7) REFERENCES source(id) NOT NULL
+);
+
+CREATE TABLE currency (
+    id VARCHAR(7) PRIMARY KEY,
+    label CHAR(3) NOT NULL UNIQUE
+);
+CREATE TABLE exchange_rate (
+    id VARCHAR(7) PRIMARY KEY,
+    change_date TIMESTAMP NOT NULL UNIQUE,
+    currency_1 VARCHAR(7) REFERENCES currency(id) NOT NULL,
+    currency_2 VARCHAR(7) REFERENCES currency(id) NOT NULL,
+    value FLOAT NOT NULL
 );
 
 CREATE TABLE boat_category (
@@ -57,7 +75,8 @@ CREATE TABLE boat (
     name VARCHAR(20) NOT NULL,
     type VARCHAR(7) REFERENCES boat_category(id),
     detail VARCHAR(7) REFERENCES boat_detail(id),
-    flag VARCHAR(7) REFERENCES boat_flag(id)
+    flag VARCHAR(7) REFERENCES boat_flag(id),
+    currency_id VARCHAR(7) REFERENCES currency(id)
 );
 
 CREATE TABLE service (
@@ -77,7 +96,8 @@ CREATE TABLE dock_detail (
 CREATE TABLE dock (
     id VARCHAR(7) PRIMARY KEY,
     name VARCHAR(20) NOT NULL,
-    detail VARCHAR(7) REFERENCES dock_detail(id)
+    detail VARCHAR(7) REFERENCES dock_detail(id),
+    currency_id VARCHAR(7) REFERENCES currency(id)
 );
 CREATE TABLE dock_service (
     id VARCHAR(8) PRIMARY KEY,
@@ -85,17 +105,18 @@ CREATE TABLE dock_service (
     service_id VARCHAR(7) REFERENCES service(id)
 );
 CREATE TABLE dock_service_price (
-    id VARCHAR(8) PRIMARY KEY,
+    id VARCHAR(9) PRIMARY KEY,
     dock_service_id VARCHAR(8) REFERENCES dock_service(id),
     boat_category_id VARCHAR(7) REFERENCES boat_category(id),
     hourly_tier FLOAT NOT NULL, -- ex: 15mn
-    duration FLOAT NOT NULL, -- ex: 3h
     UNIQUE(dock_service_id, boat_category_id)
 );
 CREATE TABLE dock_service_price_details (
-    id VARCHAR(9) PRIMARY KEY,
-    dock_service_price_id VARCHAR(8) REFERENCES dock_service_price(id),
+    id VARCHAR(11) PRIMARY KEY,
+    dock_service_price_id VARCHAR(9) REFERENCES dock_service_price(id),
     i_th_hourly_tier INT NOT NULL,
+    from_time TIME NOT NULL,
+    to_time TIME NOT NULL,
     national_price FLOAT NOT NULL,
     international_price FLOAT NOT NULL,
     CHECK (i_th_hourly_tier > 0),
@@ -103,10 +124,6 @@ CREATE TABLE dock_service_price_details (
     CHECK (international_price > 0)
 );
 
-CREATE TABLE source (
-    id VARCHAR(7) PRIMARY KEY,
-    ip VARCHAR(15) NOT NULL UNIQUE
-);
 CREATE TABLE stopover_forecast (
     id VARCHAR(9) PRIMARY KEY,
     source_id VARCHAR(7) REFERENCES source(id),
@@ -120,6 +137,7 @@ CREATE TABLE pending_forecast (
     id VARCHAR(9) PRIMARY KEY,
     stopover_forecast_id VARCHAR(9) REFERENCES stopover_forecast(id)
 );
+
 CREATE TABLE stopover (
     id VARCHAR(9) PRIMARY KEY,
     start_date TIMESTAMP NOT NULL,
@@ -130,7 +148,7 @@ CREATE TABLE stopover (
 CREATE TABLE stopover_services (
     id VARCHAR(9) PRIMARY KEY,
     stopover_id VARCHAR(9) REFERENCES stopover(id),
-    dock_id VARCHAR(8) REFERENCES dock(id),
+    dock_id VARCHAR(7) REFERENCES dock(id),
     arrival_date TIMESTAMP NOT NULL,
     departure_date TIMESTAMP NOT NULL
 );

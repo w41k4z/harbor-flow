@@ -6,10 +6,10 @@ import orm.annotation.Table;
 import orm.database.connection.DatabaseConnection;
 import orm.database.object.relation.Relation;
 
-@Table(name = "dock_service_price", columnCount = 5)
+@Table(name = "dock_service_price", columnCount = 4)
 public class DockServicePrice extends Relation<DockServicePrice> {
     /* FIELDS SECTION */
-    @PrimaryKey(column = @Column(name = "id"), prefix = "SRP", length = 7, sequence = "service_price_sequence")
+    @PrimaryKey(column = @Column(name = "id"), prefix = "SRP", length = 9, sequence = "service_price_sequence")
     private String dockServicePriceID;
 
     @Column(name = "dock_service_id")
@@ -20,9 +20,6 @@ public class DockServicePrice extends Relation<DockServicePrice> {
 
     @Column(name = "hourly_tier")
     private Double hourlyTier;
-
-    @Column
-    private Double duration;
 
     private DockServicePriceDetails[] dockServicePriceDetails;
 
@@ -50,12 +47,6 @@ public class DockServicePrice extends Relation<DockServicePrice> {
         }
     }
 
-    public void setDuration(Double duration) {
-        if (duration > 0) {
-            this.duration = duration;
-        }
-    }
-
     public void setDockServicePriceDetails(DockServicePriceDetails[] dockServicePriceDetails) {
         this.dockServicePriceDetails = dockServicePriceDetails;
     }
@@ -75,10 +66,6 @@ public class DockServicePrice extends Relation<DockServicePrice> {
 
     public Double getHourlyTier() {
         return this.hourlyTier;
-    }
-
-    public Double getDuration() {
-        return this.duration;
     }
 
     public DockServicePriceDetails[] getDockServicePriceDetails() {

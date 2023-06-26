@@ -26,7 +26,7 @@
             </a>
 
             <ul class="nav nav-pills">
-                <li class="nav-item"><a href="#" class="nav-link" aria-current="page">Planning</a></li>
+                <li class="nav-item"><a href="<%= request.getContextPath() %>/harbor/planning" class="nav-link" aria-current="page">Planning</a></li>
                 <li class="nav-item"><a href="#" class="nav-link active">Stopover</a></li>
                 <li class="nav-item"><a href="#" class="nav-link">Billing</a></li>
             </ul>

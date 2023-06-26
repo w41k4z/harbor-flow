@@ -5,7 +5,7 @@ import orm.annotation.PrimaryKey;
 import orm.annotation.Table;
 import orm.database.object.relation.Relation;
 
-@Table(name = "boat", columnCount = 5)
+@Table(name = "boat", columnCount = 6)
 public class Boat extends Relation<Boat> {
     /* FIELDS SECTION */
     @PrimaryKey(column = @Column(name = "id"), prefix = "BT", length = 7, sequence = "boat_sequence")
@@ -22,6 +22,9 @@ public class Boat extends Relation<Boat> {
 
     @Column(name = "flag")
     private String flagID;
+
+    @Column(name = "currency_id")
+    private String currencyID;
 
     /* CONSTRUCTION SECTION */
     public Boat() throws Exception {
@@ -49,6 +52,10 @@ public class Boat extends Relation<Boat> {
         this.flagID = flagID;
     }
 
+    public void setCurrencyID(String currencyID) {
+        this.currencyID = currencyID;
+    }
+
     /* GETTERS SECTION */
     public String getBoatID() {
         return this.boatID;
@@ -68,6 +75,10 @@ public class Boat extends Relation<Boat> {
 
     public String getFlagID() {
         return this.flagID;
+    }
+
+    public String getCurrencyID() {
+        return this.currencyID;
     }
 
 }

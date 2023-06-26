@@ -41,7 +41,7 @@ public class HarborFlowController {
         DatabaseConnection connection = new AppConnection().defaultConnection();
         modelView.addData("allBoats", new Boats().findAll(connection));
         modelView.addData("allDocks", new Docks().findAll(connection));
-        modelView.addData("allPendingStopovers", new Stopover().findAll(connection, "WHERE state < 11"));
+        modelView.addData("allPendingStopovers", new Stopover().findAll(connection, "WHERE end_date IS NULL"));
         connection.close();
         return modelView;
     }
