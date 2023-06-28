@@ -1,0 +1,30 @@
+.admin-panel {
+    background-color: #eeeff4;
+}
+
+.main-content {
+    width: 100%;
+    background-color: #eeeff4;
+}
+
+.header {
+    border-bottom: 1px outset rgb(185, 183, 183);
+}
+
+.logout {
+    text-decoration: none;
+    color: black;
+    transition: all 0.5s ease;
+    font-size: x-large;
+}
+.logout:hover {
+    cursor: pointer;
+    color: red;
+}
+
+.form-content {
+    max-height: 300px;
+    min-height: fit-content;
+    overflow-y: scroll;
+    overflow-x: clip;
+}

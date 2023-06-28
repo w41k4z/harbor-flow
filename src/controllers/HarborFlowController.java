@@ -1,9 +1,9 @@
 package controllers;
 
-import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import app.DockQueuing;
@@ -14,6 +14,7 @@ import etu2011.framework.annotations.Auth;
 import etu2011.framework.annotations.HttpParam;
 import etu2011.framework.annotations.ModelController;
 import etu2011.framework.annotations.Scope;
+import etu2011.framework.annotations.Sessions;
 import etu2011.framework.annotations.UrlMapping;
 import etu2011.framework.enumerations.HttpMethods;
 import etu2011.framework.enumerations.HttpParameters;
@@ -24,24 +25,34 @@ import models.DockService;
 import models.Docks;
 import models.PendingForecast;
 import models.Stopover;
+import models.StopoverInvoice;
 import models.StopoverServices;
 import models.StopoverServicesDetails;
+import models.ValidatedStopoverService;
 import orm.database.connection.DatabaseConnection;
 import orm.utilities.Treatment;
 
 @ModelController(route = "/harbor")
-@Scope(Scopes.PROTOTYPE)
+@Scope(Scopes.SINGLETON)
 public class HarborFlowController {
+
+    @Sessions
+    private Map<String, Object> session;
+
+    public void setSession(Map<String, Object> session) {
+        this.session = session;
+    }
 
     /* ROUTES */
     @Auth
-    @UrlMapping(url = "/{page}")
+    @UrlMapping(url = "/home/{page}")
     public ModelView pages(@HttpParam(type = HttpParameters.PATH_VARIABLE) String page) throws Exception {
         ModelView modelView = new ModelView("home/" + page + ".jsp");
         DatabaseConnection connection = new AppConnection().defaultConnection();
         modelView.addData("allBoats", new Boats().findAll(connection));
         modelView.addData("allDocks", new Docks().findAll(connection));
         modelView.addData("allPendingStopovers", new Stopover().findAll(connection, "WHERE end_date IS NULL"));
+        modelView.addData("allPendingStopoversBilling", new StopoverInvoice().findAll(connection, "WHERE state < 11"));
         connection.close();
         return modelView;
     }
@@ -56,41 +67,58 @@ public class HarborFlowController {
             throws Exception {
 
         DatabaseConnection connection = new AppConnection().defaultConnection();
+        try {
 
-        // creating a new stopover
-        Stopover stopover = new Stopover();
-        stopover.setBoatID(boatID);
-        stopover.setStartDate(startDate);
-        stopover.create(connection);
+            // creating a new stopover
+            Stopover stopover = new Stopover();
+            stopover.setBoatID(boatID);
+            stopover.setStartDate(startDate);
+            stopover.create(connection);
 
-        // fetching needed informations
-        Docks dock = new Docks().findByPrimaryKey(connection, dockID);
-        Boats boat = new Boats().findByPrimaryKey(connection, boatID);
-        DockService dockService = dock.getServiceByName("remorquage");
+            // fetching needed informations
+            Docks dock = new Docks().findByPrimaryKey(connection, dockID);
+            Boats boat = new Boats().findByPrimaryKey(connection, boatID);
+            DockService dockService = dock.getServiceByName("remorquage");
 
-        // creating a new stopover service from the current dock
-        StopoverServices stopoverService = new StopoverServices();
-        stopoverService.setStopoverID(stopover.getStopoverID());
-        stopoverService.setDockID(dock.getDockID());
-        stopoverService.setArrivalDate(startDate);
-        stopoverService.create(connection);
+            // checking if the dock is available
+            if (new StopoverServices().findAll(connection,
+                    "WHERE dock_id = '" + dockID + "' AND departure_date IS NULL").length > 0) {
+                throw new Exception("This dock is not available");
+            }
 
-        // inserting the service 'remorquage'
-        StopoverServicesDetails stopoverServicesDetails = new StopoverServicesDetails();
-        stopoverServicesDetails.setStopoverServicesID(stopoverService.getStopoverServicesID());
-        stopoverServicesDetails.setDockServiceID(dockService.getDockServiceID());
-        stopoverServicesDetails.setUserAccountID(userID);
-        stopoverServicesDetails.setStartDate(startDate);
-        Timestamp endDate = new Timestamp(
-                startDate.getTime() + TimeUnit.MINUTES.toMillis(boat.getTowing().longValue()));
-        stopoverServicesDetails.setEndDate(endDate);
-        stopoverServicesDetails.setState(1);
-        stopoverServicesDetails.create(connection);
+            // checking if the dock is suitable
+            if (dock.getDepth() <= boat.getDepth()) {
+                throw new Exception("This dock is not suitable for this dock");
+            }
 
-        connection.commit();
-        connection.close();
+            // creating a new stopover service from the current dock
+            StopoverServices stopoverService = new StopoverServices();
+            stopoverService.setStopoverID(stopover.getStopoverID());
+            stopoverService.setDockID(dock.getDockID());
+            stopoverService.setArrivalDate(startDate);
+            stopoverService.create(connection);
 
-        return this.pages("stopover");
+            // inserting the service 'remorquage'
+            StopoverServicesDetails stopoverServicesDetails = new StopoverServicesDetails();
+            stopoverServicesDetails.setStopoverServicesID(stopoverService.getStopoverServicesID());
+            stopoverServicesDetails.setDockServiceID(dockService.getDockServiceID());
+            stopoverServicesDetails.setUserAccountID(userID);
+            stopoverServicesDetails.setActionDate(Treatment.getCurrentTimeStamp(true));
+            stopoverServicesDetails.setStartDate(startDate);
+            Timestamp endDate = new Timestamp(
+                    startDate.getTime() + TimeUnit.MINUTES.toMillis(boat.getTowing().longValue()));
+            stopoverServicesDetails.setEndDate(endDate);
+            stopoverServicesDetails.setState(1);
+            stopoverServicesDetails.create(connection);
+
+            connection.commit();
+            connection.close();
+            return this.pages("stopover");
+        } catch (Exception e) {
+            connection.rollback();
+            connection.close();
+            throw e;
+        }
     }
 
     @Auth("capitainerie")
@@ -98,59 +126,75 @@ public class HarborFlowController {
     public ModelView changeDock(
             @HttpParam(type = HttpParameters.REQUEST_PARAMETER) String userID,
             @HttpParam(type = HttpParameters.PATH_VARIABLE) String stopoverID,
-            @HttpParam(type = HttpParameters.REQUEST_PARAMETER) String dockID) throws Exception {
+            @HttpParam(type = HttpParameters.REQUEST_PARAMETER) String dockID,
+            @HttpParam(type = HttpParameters.REQUEST_PARAMETER) Timestamp changeDate) throws Exception {
 
         DatabaseConnection connection = new AppConnection().defaultConnection();
+        try {
 
-        // fetching needed informations
-        Timestamp currentTimestamp = Treatment.getCurrentTimeStamp(true);
-        Stopover stopover = new Stopover().findByPrimaryKey(connection, stopoverID);
+            // checking if the dock is available
+            if (new StopoverServices().findAll(connection,
+                    "WHERE dock_id = '" + dockID + "' AND departure_date IS NULL").length > 0) {
+                throw new Exception("This dock is not available");
+            }
 
-        Docks dock = new Docks().findByPrimaryKey(connection, dockID);
-        DockService dockTowingService = dock.getServiceByName("remorquage");
+            // fetching needed informations
+            Timestamp currentTimestamp = Treatment.getCurrentTimeStamp(true);
+            Stopover stopover = new Stopover().findByPrimaryKey(connection, stopoverID);
 
-        Docks currentDock = new Docks().findByPrimaryKey(connection, stopover.getCurrentStopoverServices().getDockID());
-        DockService dockParkingService = currentDock.getServiceByName("stationnement");
+            Docks dock = new Docks().findByPrimaryKey(connection, dockID);
+            DockService dockTowingService = dock.getServiceByName("remorquage");
 
-        // updating the stopover services
-        StopoverServices currentStopoverService = stopover.getCurrentStopoverServices();
-        currentStopoverService.setDepartureDate(currentTimestamp);
-        currentStopoverService.update(connection);
+            Docks currentDock = new Docks().findByPrimaryKey(connection,
+                    stopover.getCurrentStopoverServices(connection).getDockID());
+            DockService dockParkingService = currentDock.getServiceByName("stationnement");
 
-        // inserting 'stationnement' service for the currentStopoverService
-        StopoverServicesDetails currentStopoverServicesDetails = new StopoverServicesDetails();
-        currentStopoverServicesDetails.setStopoverServicesID(currentStopoverService.getStopoverServicesID());
-        currentStopoverServicesDetails.setDockServiceID(dockParkingService.getDockServiceID());
-        currentStopoverServicesDetails.setUserAccountID(userID);
-        currentStopoverServicesDetails.setStartDate(currentStopoverService.getArrivalDate());
-        currentStopoverServicesDetails.setEndDate(currentTimestamp);
-        currentStopoverServicesDetails.setState(1);
-        currentStopoverServicesDetails.create(connection);
+            // updating the stopover services
+            StopoverServices currentStopoverService = stopover.getCurrentStopoverServices(connection);
+            currentStopoverService.setDepartureDate(changeDate);
+            currentStopoverService.update(connection);
 
-        // creating a new stopover service for the new dock
-        StopoverServices newStopoverServices = new StopoverServices();
-        newStopoverServices.setStopoverID(stopover.getStopoverID());
-        newStopoverServices.setDockID(dock.getDockID());
-        newStopoverServices.setArrivalDate(currentTimestamp);
-        newStopoverServices.create(connection);
+            // inserting 'stationnement' service for the currentStopoverService
+            StopoverServicesDetails currentStopoverServicesDetails = new StopoverServicesDetails();
+            currentStopoverServicesDetails.setStopoverServicesID(currentStopoverService.getStopoverServicesID());
+            currentStopoverServicesDetails.setDockServiceID(dockParkingService.getDockServiceID());
+            currentStopoverServicesDetails.setUserAccountID(userID);
+            currentStopoverServicesDetails.setActionDate(currentTimestamp);
+            currentStopoverServicesDetails.setStartDate(currentStopoverService.getArrivalDate());
+            currentStopoverServicesDetails.setEndDate(changeDate);
+            currentStopoverServicesDetails.setState(1);
+            currentStopoverServicesDetails.create(connection);
 
-        // inserting the service 'remorquage'
-        StopoverServicesDetails stopoverServicesDetails = new StopoverServicesDetails();
-        stopoverServicesDetails.setStopoverServicesID(newStopoverServices.getStopoverServicesID());
-        stopoverServicesDetails.setDockServiceID(dockTowingService.getDockServiceID());
-        stopoverServicesDetails.setUserAccountID(userID);
-        stopoverServicesDetails.setStartDate(currentTimestamp);
-        Timestamp endDate = new Timestamp(
-                currentTimestamp.getTime()
-                        + TimeUnit.MINUTES.toMillis(stopover.getBoat().getTowing().longValue()));
-        stopoverServicesDetails.setEndDate(endDate);
-        stopoverServicesDetails.setState(1);
-        stopoverServicesDetails.create(connection);
+            // creating a new stopover service for the new dock
+            StopoverServices newStopoverServices = new StopoverServices();
+            newStopoverServices.setStopoverID(stopover.getStopoverID());
+            newStopoverServices.setDockID(dock.getDockID());
+            newStopoverServices.setArrivalDate(changeDate);
+            newStopoverServices.create(connection);
 
-        connection.commit();
-        connection.close();
+            // inserting the service 'remorquage'
+            StopoverServicesDetails stopoverServicesDetails = new StopoverServicesDetails();
+            stopoverServicesDetails.setStopoverServicesID(newStopoverServices.getStopoverServicesID());
+            stopoverServicesDetails.setDockServiceID(dockTowingService.getDockServiceID());
+            stopoverServicesDetails.setUserAccountID(userID);
+            stopoverServicesDetails.setActionDate(currentTimestamp);
+            stopoverServicesDetails.setStartDate(changeDate);
+            Timestamp endDate = new Timestamp(
+                    changeDate.getTime()
+                            + TimeUnit.MINUTES.toMillis(stopover.getBoat().getTowing().longValue()));
+            stopoverServicesDetails.setEndDate(endDate);
+            stopoverServicesDetails.setState(1);
+            stopoverServicesDetails.create(connection);
 
-        return this.pages("stopover");
+            connection.commit();
+            connection.close();
+
+            return this.pages("stopover");
+        } catch (Exception e) {
+            connection.rollback();
+            connection.close();
+            throw e;
+        }
     }
 
     @Auth("capitainerie")
@@ -163,62 +207,134 @@ public class HarborFlowController {
             @HttpParam(type = HttpParameters.REQUEST_PARAMETER) Timestamp endDate) throws Exception {
 
         DatabaseConnection connection = new AppConnection().defaultConnection();
+        try {
+            // fetching needed informations
+            Stopover stopover = new Stopover().findByPrimaryKey(connection, stopoverID);
+            StopoverServices currentStopoverServices = stopover.getCurrentStopoverServices(connection);
+            Docks currentDock = new Docks().findByPrimaryKey(connection, currentStopoverServices.getDockID());
 
-        // fetching needed informations
-        Stopover stopover = new Stopover().findByPrimaryKey(connection, stopoverID);
-        StopoverServices currentStopoverServices = stopover.getCurrentStopoverServices();
-        Docks currentDock = new Docks().findByPrimaryKey(connection, currentStopoverServices.getDockID());
+            // inserting the service for this current stopover current dock
+            StopoverServicesDetails stopoverServicesDetails = new StopoverServicesDetails();
+            stopoverServicesDetails.setStopoverServicesID(currentStopoverServices.getStopoverServicesID());
+            stopoverServicesDetails.setDockServiceID(currentDock.getServiceByName(prestation).getDockServiceID());
+            stopoverServicesDetails.setUserAccountID(userID);
+            stopoverServicesDetails.setActionDate(Treatment.getCurrentTimeStamp(true));
+            stopoverServicesDetails.setStartDate(startDate);
+            stopoverServicesDetails.setEndDate(endDate);
+            stopoverServicesDetails.setState(1);
+            stopoverServicesDetails.create(connection);
 
-        // inserting the service for this current stopover current dock
-        StopoverServicesDetails stopoverServicesDetails = new StopoverServicesDetails();
-        stopoverServicesDetails.setStopoverServicesID(currentStopoverServices.getStopoverServicesID());
-        stopoverServicesDetails.setDockServiceID(currentDock.getServiceByName(prestation).getDockServiceID());
-        stopoverServicesDetails.setUserAccountID(userID);
-        stopoverServicesDetails.setStartDate(startDate);
-        stopoverServicesDetails.setEndDate(endDate);
-        stopoverServicesDetails.setState(1);
-        stopoverServicesDetails.create(connection);
+            connection.commit();
+            connection.close();
 
-        connection.commit();
-        connection.close();
-
-        return this.pages("stopover");
+            return this.pages("stopover");
+        } catch (Exception e) {
+            connection.rollback();
+            connection.close();
+            throw e;
+        }
     }
 
-    public void departure(
+    @Auth("facturation")
+    @UrlMapping(url = "/stopover/close", method = HttpMethods.POST)
+    public ModelView departure(
             @HttpParam(type = HttpParameters.REQUEST_PARAMETER) String userID,
-            @HttpParam(type = HttpParameters.REQUEST_PARAMETER) String stopoverID) throws Exception {
+            @HttpParam(type = HttpParameters.REQUEST_PARAMETER) String stopoverID,
+            @HttpParam(type = HttpParameters.REQUEST_PARAMETER) Timestamp endDate) throws Exception {
 
         DatabaseConnection connection = new AppConnection().defaultConnection();
+        try {
+            // fetching needed informations
+            Timestamp currentTimestamp = Treatment.getCurrentTimeStamp(true);
+            Stopover stopover = new Stopover().findByPrimaryKey(connection, stopoverID);
+            StopoverServices currentStopoverServices = stopover.getCurrentStopoverServices(connection);
 
-        // fetching needed informations
-        Timestamp currentTimestamp = Treatment.getCurrentTimeStamp(true);
-        Stopover stopover = new Stopover().findByPrimaryKey(connection, stopoverID);
-        StopoverServices currentStopoverServices = stopover.getCurrentStopoverServices();
+            // updating the stopover services in the current dock
+            currentStopoverServices.setDepartureDate(endDate);
+            currentStopoverServices.update(connection);
 
-        // updating the stopover services
-        currentStopoverServices.setDepartureDate(currentTimestamp);
-        currentStopoverServices.update(connection);
+            // updating stopover
+            stopover.setEndDate(endDate);
+            stopover.update(connection);
 
-        // updating stopover
-        stopover.setEndDate(currentTimestamp);
-        stopover.update(connection);
+            // inserting 'stationnement' service for the currentStopoverService
+            Docks currentDock = new Docks().findByPrimaryKey(connection, currentStopoverServices.getDockID());
+            DockService dockParkingService = currentDock.getServiceByName("stationnement");
+            StopoverServicesDetails currentStopoverServicesDetails = new StopoverServicesDetails();
+            currentStopoverServicesDetails.setStopoverServicesID(currentStopoverServices.getStopoverServicesID());
+            currentStopoverServicesDetails.setDockServiceID(dockParkingService.getDockServiceID());
+            currentStopoverServicesDetails.setUserAccountID(userID);
+            currentStopoverServicesDetails.setActionDate(currentTimestamp);
+            currentStopoverServicesDetails.setStartDate(currentStopoverServices.getArrivalDate());
+            currentStopoverServicesDetails.setEndDate(endDate);
+            currentStopoverServicesDetails.setState(1);
+            currentStopoverServicesDetails.create(connection);
 
-        // inserting 'stationnement' service for the currentStopoverService
-        Docks currentDock = new Docks().findByPrimaryKey(connection, currentStopoverServices.getDockID());
-        DockService dockParkingService = currentDock.getServiceByName("stationnement");
-        StopoverServicesDetails currentStopoverServicesDetails = new StopoverServicesDetails();
-        currentStopoverServicesDetails.setStopoverServicesID(currentStopoverServices.getStopoverServicesID());
-        currentStopoverServicesDetails.setDockServiceID(dockParkingService.getDockServiceID());
-        currentStopoverServicesDetails.setUserAccountID(userID);
-        currentStopoverServicesDetails.setStartDate(currentStopoverServices.getArrivalDate());
-        currentStopoverServicesDetails.setEndDate(currentTimestamp);
-        currentStopoverServicesDetails.setState(1);
-        currentStopoverServicesDetails.create(connection);
+            // generating invoice
+            StopoverInvoice stopoverInvoice = new StopoverInvoice();
+            stopoverInvoice.setUserAccountID(userID);
+            stopoverInvoice.setActionDate(Treatment.getCurrentTimeStamp(true));
+            stopoverInvoice.setStopoverID(stopover.getStopoverID());
+            stopoverInvoice.setStatus(1);
+            stopoverInvoice.create(connection);
 
-        connection.commit();
-        connection.close();
+            connection.commit();
+            connection.close();
 
+            return this.pages("stopover");
+        } catch (Exception e) {
+            connection.rollback();
+            connection.close();
+            throw e;
+        }
+    }
+
+    @Auth("chef capitainerie")
+    @UrlMapping(url = "/stopover/validate-service/{stopoverServicesDetailsID}")
+    public ModelView validateService(@HttpParam(type = HttpParameters.PATH_VARIABLE) String stopoverServicesDetailsID)
+            throws Exception {
+        DatabaseConnection connection = new AppConnection().defaultConnection();
+        String userID = this.session.get("user").toString();
+        try {
+            StopoverServicesDetails stopoverServicesDetails = new StopoverServicesDetails().findByPrimaryKey(connection,
+                    stopoverServicesDetailsID);
+            stopoverServicesDetails.setState(11);
+            stopoverServicesDetails.update(connection);
+
+            ValidatedStopoverService validatedStopoverService = new ValidatedStopoverService();
+            validatedStopoverService.setUserAccountID(userID);
+            validatedStopoverService
+                    .setStopoverServicesDetailsID(stopoverServicesDetails.getStopoverServicesDetailsID());
+            validatedStopoverService.setActionDate(Treatment.getCurrentTimeStamp(true));
+            validatedStopoverService.create(connection);
+
+            connection.commit();
+            connection.close();
+
+            return this.pages("billing");
+        } catch (Exception e) {
+            connection.rollback();
+            connection.close();
+            throw e;
+        }
+    }
+
+    @Auth("facturation")
+    @UrlMapping(url = "/stopover/invoice/{stopoverInvoiceID}")
+    public ModelView toBill(@HttpParam(type = HttpParameters.PATH_VARIABLE) String stopoverInvoiceID) throws Exception {
+        DatabaseConnection connection = new AppConnection().defaultConnection();
+        try {
+            StopoverInvoice stopoverInvoice = new StopoverInvoice().findByPrimaryKey(connection, stopoverInvoiceID);
+            ModelView modelView = this.pages("invoice");
+            modelView.addData("invoice", stopoverInvoice.getFacture(connection));
+
+            connection.close();
+            return modelView;
+        } catch (Exception e) {
+            connection.rollback();
+            connection.close();
+            throw e;
+        }
     }
 
     public void getPlanning() throws Exception {

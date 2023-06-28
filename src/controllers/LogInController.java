@@ -11,23 +11,19 @@ import etu2011.framework.renderer.ModelView;
 import models.UserAccount;
 
 @ModelController(route = "/login")
-@Scope(Scopes.PROTOTYPE)
+@Scope(Scopes.SINGLETON)
 public class LogInController {
-
-    @UrlMapping(url = "")
-    public ModelView index() {
-        return new ModelView("login/logIn.jsp");
-    }
 
     @UrlMapping(url = "/authenticate", method = HttpMethods.POST)
     public ModelView authenticate(
             @HttpParam(type = HttpParameters.REQUEST_PARAMETER) String email,
-            @HttpParam(type = HttpParameters.REQUEST_PARAMETER) String password) {
+            @HttpParam(type = HttpParameters.REQUEST_PARAMETER) String password) throws Exception {
 
         ModelView view;
         try {
             UserAccount userAccount = UserAccount.authenticate(email, password);
-            view = new ModelView("home/stopover.jsp");
+            // redirection
+            view = new IndexController().page("boats");
             view.addSession("user", userAccount.getUserAccountID());
             view.addSession("profile", userAccount.getProfile());
         } catch (Exception e) {
@@ -35,6 +31,6 @@ public class LogInController {
             view.addData("error", e);
         }
         return view;
-
     }
+
 }

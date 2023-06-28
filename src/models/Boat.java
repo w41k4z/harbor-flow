@@ -5,7 +5,7 @@ import orm.annotation.PrimaryKey;
 import orm.annotation.Table;
 import orm.database.object.relation.Relation;
 
-@Table(name = "boat", columnCount = 6)
+@Table(name = "boat", columnCount = 10)
 public class Boat extends Relation<Boat> {
     /* FIELDS SECTION */
     @PrimaryKey(column = @Column(name = "id"), prefix = "BT", length = 7, sequence = "boat_sequence")
@@ -17,8 +17,20 @@ public class Boat extends Relation<Boat> {
     @Column(name = "type")
     private String typeID;
 
-    @Column(name = "detail")
-    private String detailID;
+    @Column
+    private Double length;
+
+    @Column
+    private Double width;
+
+    @Column
+    private Double depth;
+
+    @Column
+    private Double weight;
+
+    @Column
+    private Double towing;
 
     @Column(name = "flag")
     private String flagID;
@@ -44,8 +56,24 @@ public class Boat extends Relation<Boat> {
         this.typeID = typeID;
     }
 
-    public void setDetailID(String detailID) {
-        this.detailID = detailID;
+    public void setLength(Double length) {
+        this.length = length;
+    }
+
+    public void setWidth(Double width) {
+        this.width = width;
+    }
+
+    public void setDepth(Double depth) {
+        this.depth = depth;
+    }
+
+    public void setWeight(Double weight) {
+        this.weight = weight;
+    }
+
+    public void setTowing(Double towing) {
+        this.towing = towing;
     }
 
     public void setFlagID(String flagID) {
@@ -69,8 +97,24 @@ public class Boat extends Relation<Boat> {
         return this.typeID;
     }
 
-    public String getDetailID() {
-        return this.detailID;
+    public Double getLength() {
+        return this.length;
+    }
+
+    public Double getWidth() {
+        return this.width;
+    }
+
+    public Double getDepth() {
+        return this.depth;
+    }
+
+    public Double getWeight() {
+        return this.weight;
+    }
+
+    public Double getTowing() {
+        return this.towing;
     }
 
     public String getFlagID() {

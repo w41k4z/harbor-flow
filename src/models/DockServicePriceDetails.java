@@ -10,7 +10,7 @@ import orm.database.object.relation.Relation;
 @Table(name = "dock_service_price_details", columnCount = 7)
 public class DockServicePriceDetails extends Relation<DockServicePriceDetails> {
     /* FIELDS SECTION */
-    @PrimaryKey(column = @Column(name = "id"), prefix = "SRPD", length = 8, sequence = "service_price_detail_sequence")
+    @PrimaryKey(column = @Column(name = "id"), prefix = "DSPD", length = 11, sequence = "dock_service_price_details_sequence")
     private String dockServicePriceDetailsID;
 
     @Column(name = "dock_service_price_id")

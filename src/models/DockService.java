@@ -105,7 +105,7 @@ public class DockService extends Relation<DockService> {
         for (DockService dockService : dockServices) {
             dockService.setService(new Service().findByPrimaryKey(connection, dockService.getServiceID()));
             dockService.setDockServicePrices(new DockServicePrice().findAll(connection,
-                    "dock_service_id = '" + dockService.getDockServiceID() + "'"));
+                    "WHERE dock_service_id = '" + dockService.getDockServiceID() + "'"));
         }
         return dockServices;
     }
@@ -116,8 +116,26 @@ public class DockService extends Relation<DockService> {
         for (DockService dockService : dockServices) {
             dockService.setService(new Service().findByPrimaryKey(connection, dockService.getServiceID()));
             dockService.setDockServicePrices(new DockServicePrice().findAll(connection,
-                    "dock_service_id = '" + dockService.getDockServiceID() + "'"));
+                    "WHERE dock_service_id = '" + dockService.getDockServiceID() + "'"));
         }
         return dockServices;
+    }
+
+    @Override
+    public DockService findByPrimaryKey(DatabaseConnection connection) throws Exception {
+        DockService dockService = super.findByPrimaryKey(connection);
+        dockService.setService(new Service().findByPrimaryKey(connection, dockService.getServiceID()));
+        dockService.setDockServicePrices(new DockServicePrice().findAll(connection,
+                "WHERE dock_service_id = '" + dockService.getDockServiceID() + "'"));
+        return dockService;
+    }
+
+    @Override
+    public DockService findByPrimaryKey(DatabaseConnection connection, String id) throws Exception {
+        DockService dockService = super.findByPrimaryKey(connection, id);
+        dockService.setService(new Service().findByPrimaryKey(connection, dockService.getServiceID()));
+        dockService.setDockServicePrices(new DockServicePrice().findAll(connection,
+                "WHERE dock_service_id = '" + dockService.getDockServiceID() + "'"));
+        return dockService;
     }
 }

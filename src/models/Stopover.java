@@ -25,6 +25,8 @@ public class Stopover extends Relation<Stopover> {
 
     private Boats boat;
 
+    private Docks currentDock;
+
     private StopoverServices[] stopoverServices;
 
     /* CONSTRUCTOR SECTION */
@@ -53,6 +55,10 @@ public class Stopover extends Relation<Stopover> {
         this.boat = boat;
     }
 
+    public void setCurrentDock(Docks currentDock) {
+        this.currentDock = currentDock;
+    }
+
     public void setStopoverServices(StopoverServices[] stopoverServices) {
         this.stopoverServices = stopoverServices;
     }
@@ -78,18 +84,23 @@ public class Stopover extends Relation<Stopover> {
         return boat;
     }
 
+    public Docks getCurrentDock() {
+        return currentDock;
+    }
+
     public StopoverServices[] getStopoverServices() {
         return stopoverServices;
     }
 
     /* METHODS SECTION */
-    public StopoverServices getCurrentStopoverServices() {
-        for (StopoverServices stopoverService : stopoverServices) {
-            if (stopoverService.getDepartureDate() == null) {
-                return stopoverService;
-            }
+    public StopoverServices getCurrentStopoverServices(DatabaseConnection connection) throws Exception {
+        StopoverServices[] currentService = new StopoverServices().findAll(connection,
+                "WHERE stopover_id = '" + this.getStopoverID()
+                        + "' AND departure_date IS NULL ORDER BY arrival_date DESC");
+        if (currentService.length != 0) {
+            return currentService[0];
         }
-        throw new RuntimeException("No current dock found");
+        return null;
     }
 
     /* OVERRIDES SECTION */
@@ -99,7 +110,9 @@ public class Stopover extends Relation<Stopover> {
         for (Stopover stopover : stopovers) {
             stopover.setBoat(new Boats().findByPrimaryKey(connection, stopover.getBoatID()));
             stopover.setStopoverServices(new StopoverServices().findAll(connection,
-                    "stopover_id = '" + stopover.getStopoverID() + "'"));
+                    "WHERE stopover_id = '" + stopover.getStopoverID() + "'"));
+            StopoverServices currentStopoverService = stopover.getCurrentStopoverServices(connection);
+            stopover.setCurrentDock(currentStopoverService == null ? null : currentStopoverService.getDock());
         }
         return stopovers;
     }
@@ -110,7 +123,8 @@ public class Stopover extends Relation<Stopover> {
         for (Stopover stopover : stopovers) {
             stopover.setBoat(new Boats().findByPrimaryKey(connection, stopover.getBoatID()));
             stopover.setStopoverServices(new StopoverServices().findAll(connection,
-                    "stopover_id = '" + stopover.getStopoverID() + "'"));
+                    "WHERE stopover_id = '" + stopover.getStopoverID() + "'"));
+            stopover.setCurrentDock(stopover.getCurrentStopoverServices(connection).getDock());
         }
         return stopovers;
     }
@@ -118,16 +132,18 @@ public class Stopover extends Relation<Stopover> {
     @Override
     public Stopover findByPrimaryKey(DatabaseConnection connection) throws Exception {
         Stopover stopover = super.findByPrimaryKey(connection);
+        stopover.setBoat(new Boats().findByPrimaryKey(connection, stopover.getBoatID()));
         stopover.setStopoverServices(new StopoverServices().findAll(connection,
-                "stopover_id = '" + stopover.getStopoverID() + "'"));
+                "WHERE stopover_id = '" + stopover.getStopoverID() + "'"));
         return stopover;
     }
 
     @Override
     public Stopover findByPrimaryKey(DatabaseConnection connection, String id) throws Exception {
         Stopover stopover = super.findByPrimaryKey(connection, id);
+        stopover.setBoat(new Boats().findByPrimaryKey(connection, stopover.getBoatID()));
         stopover.setStopoverServices(new StopoverServices().findAll(connection,
-                "stopover_id = '" + stopover.getStopoverID() + "'"));
+                "WHERE stopover_id = '" + stopover.getStopoverID() + "'"));
         return stopover;
     }
 }

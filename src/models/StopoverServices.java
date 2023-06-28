@@ -1,12 +1,14 @@
 package models;
 
 import java.sql.Timestamp;
+import java.util.ArrayList;
 
 import orm.annotation.Column;
 import orm.annotation.PrimaryKey;
 import orm.annotation.Table;
 import orm.database.connection.DatabaseConnection;
 import orm.database.object.relation.Relation;
+import orm.utilities.Treatment;
 
 @Table(name = "stopover_services", columnCount = 5)
 public class StopoverServices extends Relation<StopoverServices> {
@@ -26,7 +28,7 @@ public class StopoverServices extends Relation<StopoverServices> {
     @Column(name = "departure_date")
     private Timestamp departureDate;
 
-    private Dock dock;
+    private Docks dock;
 
     private StopoverServicesDetails[] stopoverServicesDetails;
 
@@ -56,7 +58,7 @@ public class StopoverServices extends Relation<StopoverServices> {
         this.departureDate = departureDate;
     }
 
-    public void setDock(Dock dock) {
+    public void setDock(Docks dock) {
         this.dock = dock;
     }
 
@@ -85,7 +87,7 @@ public class StopoverServices extends Relation<StopoverServices> {
         return departureDate;
     }
 
-    public Dock getDock() {
+    public Docks getDock() {
         return dock;
     }
 
@@ -93,14 +95,39 @@ public class StopoverServices extends Relation<StopoverServices> {
         return stopoverServicesDetails;
     }
 
+    /* METHODS SECTION */
+    public ArrayList<Double[]> getInvoice(DatabaseConnection connection, Boats boat) throws Exception {
+        ArrayList<Double[]> allCost = new ArrayList<>();
+        for (StopoverServicesDetails stopoverServiceDetail : stopoverServicesDetails) {
+            System.out.println("\t" + stopoverServiceDetail.getDockService().getService().getName());
+            if (stopoverServiceDetail.getState() == 11) {
+                Double[] amount = stopoverServiceDetail.getCost(boat);
+                Currency dockCurrency = new Currency().findAll(connection,
+                        "WHERE label = '" + this.getDock().getCurrency() + "'")[0];
+                dockCurrency.setValue(amount[1]);
+                Currency boatCurrency = boat.getCurrency(connection);
+                allCost.add(amount);
+                System.out.println("\t\tNationale: " + amount[0] + " " + this.getDock().getCurrency());
+                System.out.println("\t\tInternationale: " + amount[1] + " " + this.getDock().getCurrency());
+                if (!boatCurrency.getCurrencyID().equals(dockCurrency.getCurrencyID())) {
+                    System.out.println("\t\t\t=> "
+                            + dockCurrency.getConversionTo(connection, boatCurrency.getCurrencyID(),
+                                    Treatment.getCurrentTimeStamp(true))
+                            + " " + boatCurrency.getLabel());
+                }
+            }
+        }
+        return allCost;
+    }
+
     /* OVERRIDES SECTION */
     @Override
     public StopoverServices[] findAll(DatabaseConnection connection) throws Exception {
         StopoverServices[] stopoverServices = super.findAll(connection);
         for (StopoverServices stopoverService : stopoverServices) {
-            stopoverService.setDock(new Dock().findByPrimaryKey(connection, stopoverService.getDockID()));
+            stopoverService.setDock(new Docks().findByPrimaryKey(connection, stopoverService.getDockID()));
             stopoverService.setStopoverServicesDetails(new StopoverServicesDetails().findAll(connection,
-                    "stopover_services_id = '" + stopoverService.getStopoverServicesID() + "'"));
+                    "WHERE stopover_services_id = '" + stopoverService.getStopoverServicesID() + "'"));
         }
         return stopoverServices;
     }
@@ -109,9 +136,9 @@ public class StopoverServices extends Relation<StopoverServices> {
     public StopoverServices[] findAll(DatabaseConnection connection, String spec) throws Exception {
         StopoverServices[] stopoverServices = super.findAll(connection, spec);
         for (StopoverServices stopoverService : stopoverServices) {
-            stopoverService.setDock(new Dock().findByPrimaryKey(connection, stopoverService.getDockID()));
+            stopoverService.setDock(new Docks().findByPrimaryKey(connection, stopoverService.getDockID()));
             stopoverService.setStopoverServicesDetails(new StopoverServicesDetails().findAll(connection,
-                    "stopover_services_id = '" + stopoverService.getStopoverServicesID() + "'"));
+                    "WHERE stopover_services_id = '" + stopoverService.getStopoverServicesID() + "'"));
         }
         return stopoverServices;
     }

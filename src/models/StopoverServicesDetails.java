@@ -1,13 +1,15 @@
 package models;
 
+import java.sql.Time;
 import java.sql.Timestamp;
 
 import orm.annotation.Column;
 import orm.annotation.PrimaryKey;
 import orm.annotation.Table;
+import orm.database.connection.DatabaseConnection;
 import orm.database.object.relation.Relation;
 
-@Table(name = "stopover_services_details", columnCount = 7)
+@Table(name = "stopover_services_details", columnCount = 8)
 public class StopoverServicesDetails extends Relation<StopoverServicesDetails> {
     /* FIELDS SECTION */
     @PrimaryKey(column = @Column(name = "id"), prefix = "STSD", length = 9, sequence = "stopover_services_details_sequence")
@@ -33,6 +35,8 @@ public class StopoverServicesDetails extends Relation<StopoverServicesDetails> {
 
     @Column
     private Integer state;
+
+    private DockService dockService;
 
     /* CONSTRUCTOR SECTION */
     public StopoverServicesDetails() throws Exception {
@@ -72,6 +76,10 @@ public class StopoverServicesDetails extends Relation<StopoverServicesDetails> {
         this.state = state;
     }
 
+    public void setDockService(DockService dockService) {
+        this.dockService = dockService;
+    }
+
     /* GETTERS */
     public String getStopoverServicesDetailsID() {
         return stopoverServicesDetailsID;
@@ -103,5 +111,77 @@ public class StopoverServicesDetails extends Relation<StopoverServicesDetails> {
 
     public Integer getState() {
         return state;
+    }
+
+    public String getActualState() {
+        switch (state) {
+            case 1:
+                return "Pending";
+            case 11:
+                return "Validated";
+            case 21:
+                return "Paid";
+            default:
+                return "Desconocido";
+        }
+    }
+
+    public DockService getDockService() {
+        return dockService;
+    }
+
+    /* METHODS SECTION */
+    public Double[] getCost(Boats boat) throws Exception {
+        double duration = (this.getEndDate().getTime() - this.getStartDate().getTime()) / (60 * 1000);
+        DockServicePrice dockServicePrice = this.getDockService().getDockServicePriceByCategory(boat);
+        double nationalCost = 0;
+        double internationalCost = 0;
+        double nationalAmount = 0;
+        double internationalAmount = 0;
+        int slice = (int) Math.ceil(duration / dockServicePrice.getHourlyTier());
+        for (int i = 0; i < slice; i++) {
+            DockServicePriceDetails[] details = dockServicePrice.getTierDockServicePriceDetails(i + 1);
+            if (details.length > 0) {
+                for (DockServicePriceDetails detail : details) {
+                    Timestamp timestamp = new Timestamp(
+                            this.getStartDate().getTime()
+                                    + (long) (dockServicePrice.getHourlyTier() * 60 * 1000) * (i + 1));
+                    Time toCheck = Time.valueOf(timestamp.toString().split(" ")[1].split("\\.")[0]);
+                    Time from = detail.getFromTime();
+                    Time to = detail.getToTime();
+                    if (toCheck.after(from) && toCheck.before(to)) {
+                        nationalAmount = detail.getNationalPrice();
+                        internationalAmount = detail.getInternationalPrice();
+                        break;
+                    }
+                }
+            }
+            nationalCost += nationalAmount;
+            internationalCost += internationalAmount;
+        }
+        return new Double[] { nationalCost, internationalCost };
+    }
+
+    /* OVERRIDES SECTION */
+    @Override
+    public StopoverServicesDetails[] findAll(DatabaseConnection connection) throws Exception {
+        StopoverServicesDetails[] stopoverServicesDetails = super.findAll(connection);
+        for (StopoverServicesDetails stopoverServiceDetail : stopoverServicesDetails) {
+            stopoverServiceDetail.setDockService(
+                    new DockService().findByPrimaryKey(connection,
+                            stopoverServiceDetail.getDockServiceID()));
+        }
+        return stopoverServicesDetails;
+    }
+
+    @Override
+    public StopoverServicesDetails[] findAll(DatabaseConnection connection, String spec) throws Exception {
+        StopoverServicesDetails[] stopoverServicesDetails = super.findAll(connection, spec);
+        for (StopoverServicesDetails stopoverServiceDetail : stopoverServicesDetails) {
+            stopoverServiceDetail.setDockService(
+                    new DockService().findByPrimaryKey(connection,
+                            stopoverServiceDetail.getDockServiceID()));
+        }
+        return stopoverServicesDetails;
     }
 }

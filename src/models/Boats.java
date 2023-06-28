@@ -7,7 +7,7 @@ import orm.database.object.relation.Relation;
 import orm.database.object.view.View;
 
 // VIEW
-@Table(columnCount = 13)
+@Table(columnCount = 12)
 public class Boats extends Relation<Boats> {
     /* FIELDS SECTION */
     @Column(name = "id")
@@ -21,9 +21,6 @@ public class Boats extends Relation<Boats> {
 
     @Column
     private String type;
-
-    @Column(name = "boat_detail_id")
-    private String boatDetailID;
 
     @Column
     private Double length;
@@ -69,10 +66,6 @@ public class Boats extends Relation<Boats> {
 
     public void setType(String type) {
         this.type = type;
-    }
-
-    public void setBoatDetailID(String boatDetailID) {
-        this.boatDetailID = boatDetailID;
     }
 
     public void setLength(Double length) {
@@ -124,10 +117,6 @@ public class Boats extends Relation<Boats> {
         return this.type;
     }
 
-    public String getBoatDetailID() {
-        return this.boatDetailID;
-    }
-
     public Double getLength() {
         return this.length;
     }
@@ -173,6 +162,16 @@ public class Boats extends Relation<Boats> {
     @Override
     public Boats[] findAll(DatabaseConnection connection, String spec) throws Exception {
         return new View<Boats>("boats", Boats.class).findAll(connection, spec);
+    }
+
+    @Override
+    public Boats findByPrimaryKey(DatabaseConnection connection) throws Exception {
+        return this.findAll(connection, "WHERE id = '" + this.getBoatID() + "'")[0];
+    }
+
+    @Override
+    public Boats findByPrimaryKey(DatabaseConnection connection, String id) throws Exception {
+        return this.findAll(connection, "WHERE id = '" + id + "'")[0];
     }
 
     @Override

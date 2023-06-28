@@ -10,7 +10,7 @@ import orm.database.connection.DatabaseConnection;
 import orm.database.object.relation.Relation;
 import orm.database.object.view.View;
 
-@Table(columnCount = 5)
+@Table(columnCount = 6)
 public class Docks extends Relation<Docks> {
     /* FIELDS SECTION */
     @Column(name = "id")
@@ -151,7 +151,7 @@ public class Docks extends Relation<Docks> {
                 "WHERE id = '" + this.getDockID() + "'");
         if (docks.length == 1) {
             docks[0].setDockServices(new DockService().findAll(connection,
-                    "WHERE dock_id = '" + docks[0].getDockID()));
+                    "WHERE dock_id = '" + docks[0].getDockID() + "'"));
             return docks[0];
         }
         return null;
@@ -162,7 +162,7 @@ public class Docks extends Relation<Docks> {
         Docks[] docks = new View<Docks>("docks", Docks.class).findAll(connection, "WHERE id = '" + pk + "'");
         if (docks.length == 1) {
             docks[0].setDockServices(new DockService().findAll(connection,
-                    "WHERE dock_id = '" + docks[0].getDockID()));
+                    "WHERE dock_id = '" + docks[0].getDockID() + "'"));
             return docks[0];
         }
         return null;
@@ -173,7 +173,7 @@ public class Docks extends Relation<Docks> {
         Docks[] docks = new View<Docks>("docks", Docks.class).findAll(connection);
         for (Docks dock : docks) {
             dock.setDockServices(new DockService().findAll(connection,
-                    "WHERE dock_id = '" + dock.getDockID()));
+                    "WHERE dock_id = '" + dock.getDockID() + "'"));
         }
         return docks;
     }
@@ -183,7 +183,7 @@ public class Docks extends Relation<Docks> {
         Docks[] docks = new View<Docks>("docks", Docks.class).findAll(connection, spec);
         for (Docks dock : docks) {
             dock.setDockServices(new DockService().findAll(connection,
-                    "WHERE dock_id = '" + dock.getDockID()));
+                    "WHERE dock_id = '" + dock.getDockID() + "'"));
         }
         return docks;
     }

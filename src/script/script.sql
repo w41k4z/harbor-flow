@@ -2,13 +2,11 @@ CREATE SEQUENCE source_sequence;
 CREATE SEQUENCE user_account_sequence;
 CREATE SEQUENCE currency_sequence;
 CREATE SEQUENCE exchange_rate_sequence;
-CREATE SEQUENCE boat_category_sequence; 
-CREATE SEQUENCE boat_detail_sequence; 
+CREATE SEQUENCE boat_category_sequence;  
 CREATE SEQUENCE boat_flag_sequence; 
 CREATE SEQUENCE boat_sequence; 
 CREATE SEQUENCE service_sequence; 
 CREATE SEQUENCE dock_sequence; 
-CREATE SEQUENCE dock_detail_sequence; 
 CREATE SEQUENCE dock_service_sequence; 
 CREATE SEQUENCE dock_service_price_sequence; 
 CREATE SEQUENCE dock_service_price_details_sequence; 
@@ -53,19 +51,6 @@ CREATE TABLE boat_category (
     id VARCHAR(7) PRIMARY KEY,
     name VARCHAR(20) NOT NULL
 );
-CREATE TABLE boat_detail (
-    id VARCHAR(7) PRIMARY KEY,
-    length FLOAT NOT NULL,
-    width FLOAT NOT NULL,
-    depth FLOAT NOT NULL,
-    weight FLOAT NOT NULL,
-    towing FLOAT NOT NULL, -- ex: 30mn
-    CHECK (towing > 0),
-    CHECK (length > 0),
-    CHECK (width > 0),
-    CHECK (depth > 0),
-    CHECK (weight > 0)
-);
 CREATE TABLE boat_flag (
     id VARCHAR(7) PRIMARY KEY,
     origin VARCHAR(20) NOT NULL
@@ -74,9 +59,18 @@ CREATE TABLE boat (
     id VARCHAR(7) PRIMARY KEY,
     name VARCHAR(20) NOT NULL,
     type VARCHAR(7) REFERENCES boat_category(id),
-    detail VARCHAR(7) REFERENCES boat_detail(id),
+    length FLOAT NOT NULL,
+    width FLOAT NOT NULL,
+    depth FLOAT NOT NULL,
+    weight FLOAT NOT NULL,
+    towing FLOAT NOT NULL, 
     flag VARCHAR(7) REFERENCES boat_flag(id),
-    currency_id VARCHAR(7) REFERENCES currency(id)
+    currency_id VARCHAR(7) REFERENCES currency(id),
+    CHECK (towing > 0),
+    CHECK (length > 0),
+    CHECK (width > 0),
+    CHECK (depth > 0),
+    CHECK (weight > 0)
 );
 
 CREATE TABLE service (
@@ -84,28 +78,25 @@ CREATE TABLE service (
     name VARCHAR(20) NOT NULL
 );
 
-CREATE TABLE dock_detail (
+CREATE TABLE dock (
     id VARCHAR(7) PRIMARY KEY,
+    name VARCHAR(20) NOT NULL,
     length FLOAT NOT NULL,
     width FLOAT NOT NULL,
     depth FLOAT NOT NULL,
+    currency_id VARCHAR(7) REFERENCES currency(id),
     CHECK (length > 0),
     CHECK (width > 0),
     CHECK (depth > 0)
 );
-CREATE TABLE dock (
-    id VARCHAR(7) PRIMARY KEY,
-    name VARCHAR(20) NOT NULL,
-    detail VARCHAR(7) REFERENCES dock_detail(id),
-    currency_id VARCHAR(7) REFERENCES currency(id)
-);
 CREATE TABLE dock_service (
     id VARCHAR(8) PRIMARY KEY,
     dock_id VARCHAR(7) REFERENCES dock(id),
-    service_id VARCHAR(7) REFERENCES service(id)
+    service_id VARCHAR(7) REFERENCES service(id),
+    UNIQUE(dock_id, service_id)
 );
 CREATE TABLE dock_service_price (
-    id VARCHAR(9) PRIMARY KEY,
+    id VARCHAR(10) PRIMARY KEY,
     dock_service_id VARCHAR(8) REFERENCES dock_service(id),
     boat_category_id VARCHAR(7) REFERENCES boat_category(id),
     hourly_tier FLOAT NOT NULL, -- ex: 15mn
@@ -113,7 +104,7 @@ CREATE TABLE dock_service_price (
 );
 CREATE TABLE dock_service_price_details (
     id VARCHAR(11) PRIMARY KEY,
-    dock_service_price_id VARCHAR(9) REFERENCES dock_service_price(id),
+    dock_service_price_id VARCHAR(10) REFERENCES dock_service_price(id),
     i_th_hourly_tier INT NOT NULL,
     from_time TIME NOT NULL,
     to_time TIME NOT NULL,
@@ -150,12 +141,12 @@ CREATE TABLE stopover_services (
     stopover_id VARCHAR(9) REFERENCES stopover(id),
     dock_id VARCHAR(7) REFERENCES dock(id),
     arrival_date TIMESTAMP NOT NULL,
-    departure_date TIMESTAMP NOT NULL
+    departure_date TIMESTAMP
 );
 CREATE TABLE stopover_services_details (
     id VARCHAR(9) PRIMARY KEY,
     stopover_services_id VARCHAR(9) REFERENCES stopover_services(id),
-    dock_service_id VARCHAR(8) REFERENCES dock_service_price(id),
+    dock_service_id VARCHAR(8) REFERENCES dock_service(id),
     user_account_id VARCHAR(7) REFERENCES user_account(id),
     action_date TIMESTAMP NOT NULL,
     start_date TIMESTAMP NOT NULL,
@@ -171,7 +162,7 @@ CREATE TABLE validated_stopover_service (
 );
 CREATE TABLE stopover_invoice (
     id VARCHAR(9) PRIMARY KEY,
-    stopover_id VARCHAR(9) REFERENCES stopover_services(id),
+    stopover_id VARCHAR(9) REFERENCES stopover(id),
     user_account_id VARCHAR(7) REFERENCES user_account(id),
     action_date TIMESTAMP NOT NULL,
     state INT NOT NULL, -- 1: pending, 11: validated, 21: paid
